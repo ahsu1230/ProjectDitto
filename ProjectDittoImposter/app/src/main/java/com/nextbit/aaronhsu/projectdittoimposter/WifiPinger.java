@@ -73,22 +73,15 @@ public class WifiPinger {
         pingMessage(MSG_REQUEST_MIMIC, null);
     }
 
-    public void handleResponseToMimic(int nextPage) {
-        Log.d(TAG, "*** handling response to mimic! " + nextPage);
-        Intent intent = new Intent(TransformActivity.ACTION_UPDATE_LAYOUT);
-        intent.putExtra(TransformActivity.EXTRA_LAYOUT_NUM, nextPage);
-        mContext.startActivity(intent);
-    }
-
     public void handleResponseToMimic(String nextPagePath) {
-        Log.d(TAG, "*** handling response to mimic! " + nextPagePath);
+        Log.d(TAG, "*** handling response to mimic! " + nextPagePath + " *********");
         Intent intent = new Intent(TransformActivity.ACTION_UPDATE_LAYOUT);
         intent.putExtra(TransformActivity.EXTRA_LAYOUT_PATH, nextPagePath);
-        mContext.startActivity(intent);
+        mContext.sendBroadcast(intent);
     }
 
     public void pingToRequestClick(int x, int y) {
-        Log.d(TAG, "*** ping to interact! (" + x + ", " + y + ")");
+        Log.d(TAG, "*** ping to interact! (" + x + ", " + y + ") *********");
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
              DataOutputStream outStream = new DataOutputStream(baos)) {
             outStream.writeInt(x);
@@ -105,26 +98,28 @@ public class WifiPinger {
         if (action == 0) {
             Log.d(TAG, "No action... do nothing");
             return;
-        } else if (action <= 3) {
+        } else if (action > 0) {
+//            try {
+//                Thread.sleep(3000);
+//                Log.d(TAG, "Action occured! Request mimic!");
+//                pingToRequestMimic();
+//            } catch (InterruptedException e) {
+//
+//            }
             Log.d(TAG, "Go to page " + action);
             Intent intent = new Intent(TransformActivity.ACTION_UPDATE_LAYOUT);
-            intent.putExtra(TransformActivity.EXTRA_LAYOUT_NUM, action);
-            mContext.startActivity(intent);
+            intent.putExtra(TransformActivity.EXTRA_LAYOUT_PATH, convertPageNumberToPath(action));
+            mContext.sendBroadcast(intent);
         }
     }
 
-    /**
-     * Used for small messages
-     * @param message
-     * @param data
-     * @return byte[] for response
-     */
-    private void pingMessage(byte message, byte[] data) {
-        boolean connected = false;
+    private boolean connectSocket() {
+        if (mSocket != null && mSocket.isConnected()) {
+            return true;
+        }
         for (int retry = 1; retry <= 3; retry++) {
             try {
                 bindSocket();
-                connected = true;
                 break;
             } catch (BindException e) {
                 Log.d(TAG, "Socket already bounded... ");
@@ -138,8 +133,17 @@ public class WifiPinger {
                 Log.e(TAG, "Problem binding socket retry again... " + retry, e);
             }
         }
+        return mSocket.isConnected();
+    }
 
-        if (!connected) {
+    /**
+     * Used for small messages
+     * @param message
+     * @param data
+     * @return byte[] for response
+     */
+    private void pingMessage(byte message, byte[] data) {
+        if (!connectSocket()) {
             return;
         }
 
@@ -159,7 +163,7 @@ public class WifiPinger {
             int respMsg = is.read();
             if (MSG_REQUEST_MIMIC == respMsg) {
                 int nextPage = is.read();
-                handleResponseToMimic(nextPage);
+                handleResponseToMimic(convertPageNumberToPath(nextPage));
             } else if (MSG_REQUEST_CLICK == respMsg) {
                 int action = is.read();
                 handleResponseToClick(action);
@@ -175,6 +179,18 @@ public class WifiPinger {
                 Log.e(TAG, "Problem unbinding socket", e);
             }
         }
+    }
+
+    private String convertPageNumberToPath(int pageNumber) {
+        if (pageNumber == 1) {
+            return TransformActivity.HOST_PAGE_PATH_1;
+        } else if (pageNumber == 2) {
+            return TransformActivity.HOST_PAGE_PATH_2;
+        } else if (pageNumber == 3) {
+            return TransformActivity.HOST_PAGE_PATH_3;
+        }
+        Log.d(TAG, "Unknown response for MIMIC " + pageNumber);
+        return null;
     }
 
 //    private byte[] getBytesFromInputStream(InputStream is) throws IOException {

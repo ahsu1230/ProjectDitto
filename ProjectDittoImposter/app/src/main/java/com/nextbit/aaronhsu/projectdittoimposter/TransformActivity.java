@@ -2,6 +2,7 @@ package com.nextbit.aaronhsu.projectdittoimposter;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -29,17 +30,23 @@ import java.io.IOException;
 public class TransformActivity extends Activity {
     private static final String TAG = "Ditto.TransformActivity";
 
-//    public static final String HOST_PAGE_PATH_1 = "/sdcard/DittoLayouts/imposter_page1.xml";
+//    public static final String HOST_PAGE_PATH_1 = "/sdcard/DittoLayouts/host_page1.xml";
     public static final String HOST_PAGE_PATH_1 = "/storage/emulated/0/DittoLayouts/host_page1.xml";
     public static final String HOST_PAGE_PATH_2 = "/storage/emulated/0/DittoLayouts/host_page2.xml";
     public static final String HOST_PAGE_PATH_3 = "/storage/emulated/0/DittoLayouts/host_page3.xml";
-    public static final String IMAGE_PATH_1 = "/storage/emulated/0/DittoLayouts/ditto_look.png";
+    public static final String IMAGE_PATH_1_1 = "/storage/emulated/0/DittoLayouts/ditto_look.png";
+    public static final String IMAGE_PATH_3_1 = "/storage/emulated/0/DittoLayouts/ditto_gen1.png";
+    public static final String IMAGE_PATH_3_2 = "/storage/emulated/0/DittoLayouts/ditto_gen2.png";
+    public static final String IMAGE_PATH_3_3 = "/storage/emulated/0/DittoLayouts/ditto_gen3.png";
+    public static final String IMAGE_PATH_3_4 = "/storage/emulated/0/DittoLayouts/ditto_gen5.png";
+    public static final String IMAGE_PATH_3_5 = "/storage/emulated/0/DittoLayouts/ditto_gen5shiny.png";
+
     static final int MIN_DISTANCE = 100;
 
     // Intents
     public static final String ACTION_UPDATE_LAYOUT = "com.nextbit.aaronhsu.projectdittoimposter.UPDATE_LAYOUT";
-    public static final String EXTRA_LAYOUT_NUM = "extra_layout_num";
     public static final String EXTRA_LAYOUT_PATH = "extra_layout_path";
+    private InnerReceiver mInnerReceiver = new InnerReceiver();
 
     // Permissions
     private static String[] PERMISSIONS_STORAGE = {
@@ -49,7 +56,7 @@ public class TransformActivity extends Activity {
     private final int PERM_REQUEST_CODE = 200;
 
     // WifiDirect
-    protected final IntentFilter mIntentFilter = new IntentFilter();
+    protected final IntentFilter mWifiIntentFilter = new IntentFilter();
     private WifiDirectReceiver mReceiver;
     private WifiP2pManager mManager;
     private WifiP2pManager.Channel mChannel;
@@ -71,7 +78,7 @@ public class TransformActivity extends Activity {
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                new PingToMimicTask(mReceiver).execute();
+            new PingToMimicTask(mReceiver).execute();
             }
         });
 
@@ -81,18 +88,16 @@ public class TransformActivity extends Activity {
 
         // Prepare setup for P2P Wifi-Direct Manager
         // Indicates a change in the Wi-Fi Peer-to-Peer status.
-        mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
+        mWifiIntentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
         // Indicates a change in the list of available peers.
-        mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION);
+        mWifiIntentFilter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION);
         // Indicates the state of Wi-Fi P2P connectivity has changed.
-        mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
+        mWifiIntentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
         // Indicates this device's details have changed.
-        mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
+        mWifiIntentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
 
         mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         mChannel = mManager.initialize(this, getMainLooper(), null);
-
-        onHandleIntent(getIntent());
     }
 
     @Override
@@ -102,10 +107,13 @@ public class TransformActivity extends Activity {
         if (mReceiver == null) {
             Log.d(TAG, "register WifiReceiver");
             mReceiver = new WifiDirectReceiver(this, mManager, mChannel);
-            registerReceiver(mReceiver, mIntentFilter);
+            registerReceiver(mReceiver, mWifiIntentFilter);
             Log.d(TAG, "initiate wifi discovery peers");
             discoverWifiDirectPeers();
         }
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(ACTION_UPDATE_LAYOUT);
+        registerReceiver(mInnerReceiver, filter);
     }
 
     @Override
@@ -116,6 +124,7 @@ public class TransformActivity extends Activity {
             unregisterReceiver(mReceiver);
             mReceiver = null;
         }
+        unregisterReceiver(mInnerReceiver);
     }
 
     @Override
@@ -151,44 +160,57 @@ public class TransformActivity extends Activity {
         }
     }
 
-    private void onHandleIntent(Intent intent) {
-        String action = intent.getAction();
-        Log.d(TAG, "Handling intent... " + action);
-
-        if (ACTION_UPDATE_LAYOUT.equals(action)) {
-            int nextPage = intent.getIntExtra(EXTRA_LAYOUT_NUM, 0);
-            Log.d(TAG, "updating layout to page " + nextPage);
-            updateLayout(nextPage);
-        }
-    }
-
+    //
     // Activity Layout
+    //
+
     public View getRootView() {
         //return this.getWindow().getDecorView().findFocus();
         return findViewById(android.R.id.content);
     }
 
-    public void updateLayout(int page) {
-        switch (page) {
-            case 1:
-                updateLayoutWithXml(HOST_PAGE_PATH_1);
-                break;
-            case 2:
-                updateLayoutWithXml(HOST_PAGE_PATH_2);
-                break;
-            case 3:
-                updateLayoutWithXml(HOST_PAGE_PATH_3);
-                break;
-            default:
-                Log.w(TAG, "Unknown page number...");
+    private void updateLayoutWithXml(String xmlFilePath) {
+        Log.d(TAG, "updateLayout... " + xmlFilePath);
+
+        File layoutFile = new File(xmlFilePath);
+        if (layoutFile == null) {
+            Log.d(TAG, "file null...");
+        } else if (layoutFile.exists()) {
+            Log.d(TAG, "file exists!");
+        } else {
+            Log.d(TAG, "file does not exist...");
         }
 
-        getRootView().setOnTouchListener(new View.OnTouchListener() {
+        // Use Custom XmlParser & Inflater
+        try {
+            XmlPullParser parser = new MyXmlParser(xmlFilePath);
+
+            ViewInflater viewInflater = new ViewInflater(this);
+            View newRoot = viewInflater.createRootView(parser);
+
+            Log.d(TAG, "Finished view group");
+            viewInflater.printViewGroup((ViewGroup) newRoot);
+
+            Log.d(TAG, "Setting new content view");
+            setContentView(newRoot);
+
+            Log.d(TAG, "Setup click listener on new root " + newRoot);
+            setupClickListenerOnRoot(newRoot);
+//            Log.d(TAG, "Setup click listener on getRootView() " + getRootView());
+//            setupClickListenerOnRoot(getRootView());
+
+        } catch (IOException e) {
+            Log.e(TAG, "Error parsing xml file " + xmlFilePath, e);
+        }
+    }
+
+    private void setupClickListenerOnRoot(View view) {
+        view.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 int action = event.getAction();
-                int x = (int)event.getX();
-                int y = (int)event.getY();
+                int x = (int) event.getX();
+                int y = (int) event.getY();
                 Log.d(TAG, "Touch: " + action + " (" + x + ", " + y + ")");
 
                 float downX = 0, downY = 0, upX = 0, upY = 0;
@@ -217,7 +239,7 @@ public class TransformActivity extends Activity {
 
                 if (Math.abs(deltaX) < MIN_DISTANCE && Math.abs(deltaY) < MIN_DISTANCE) {
                     Log.d(TAG, "DETECTED CLICK!");
-                    new PingToClickTask(mReceiver).execute((int)upX, (int)upY);
+                    new PingToClickTask(mReceiver).execute((int) upX, (int) upY);
                     lastDownX = 0;
                     lastDownY = 0;
                 } else if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > MIN_DISTANCE) {
@@ -236,39 +258,6 @@ public class TransformActivity extends Activity {
                 return true;
             }
         });
-
-        //setOnScrollStateChanged
-        //setOnClickListener
-        //setOnLongClickListener
-    }
-
-    public void updateLayoutWithXml(String xmlFilePath) {
-        Log.d(TAG, "updateLayout... " + xmlFilePath);
-
-        File layoutFile = new File(xmlFilePath);
-        if (layoutFile == null) {
-            Log.d(TAG, "file null...");
-        } else if (layoutFile.exists()) {
-            Log.d(TAG, "file exists!");
-        } else {
-            Log.d(TAG, "file does not exist...");
-        }
-
-        // Use Custom XmlParser & Inflater
-        try {
-            XmlPullParser parser = new MyXmlParser(xmlFilePath);
-
-            ViewInflater viewInflater = new ViewInflater(this);
-            View newRoot = viewInflater.createRootView(parser);
-
-            Log.d(TAG, "Finished view group");
-            viewInflater.printViewGroup((ViewGroup) newRoot);
-
-            Log.d(TAG, "Setting new content view");
-            setContentView(newRoot);
-        } catch (IOException e) {
-            Log.e(TAG, "Error parsing xml file " + xmlFilePath, e);
-        }
     }
 
     //
@@ -338,6 +327,18 @@ public class TransformActivity extends Activity {
         @Override
         protected void onPostExecute(Void o) {
             Log.d(TAG, "PingToClickTask... postExecute()");
+        }
+    }
+
+    public class InnerReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (ACTION_UPDATE_LAYOUT.equals(action)) {
+                String nextPagePath = intent.getStringExtra(EXTRA_LAYOUT_PATH);
+                Log.d(TAG, "updating layout to page " + nextPagePath);
+                updateLayoutWithXml(nextPagePath);
+            }
         }
     }
 }

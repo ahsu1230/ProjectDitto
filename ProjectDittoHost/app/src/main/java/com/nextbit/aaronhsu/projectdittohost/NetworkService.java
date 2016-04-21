@@ -5,8 +5,6 @@ import android.content.Intent;
 import android.os.IBinder;
 import android.util.Log;
 
-import java.net.Socket;
-
 /**
  * Created by aaronhsu on 4/20/16.
  */
@@ -57,6 +55,7 @@ public class NetworkService extends Service {
                 Log.d(TAG, "Listening...");
                 mListener.listenToRespond();
             }
+            mListener.close();
         }
     }
 }

@@ -2,6 +2,7 @@ package com.nextbit.aaronhsu.projectdittoimposter;
 
 import android.content.Context;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -30,8 +31,19 @@ public class ViewInflater {
         mContext = context;
     }
 
+    public class MyFrameLayout extends FrameLayout {
+        public MyFrameLayout(Context context) {
+            super(context);
+        }
+        @Override
+        public boolean onInterceptTouchEvent(MotionEvent ev) {
+            Log.d(TAG, "%%% pass touch to parent! %%%");
+            return true;
+        }
+    }
+
     public View createRootView(XmlPullParser parser) {
-        FrameLayout root = new FrameLayout(mContext);
+        FrameLayout root = new MyFrameLayout(mContext);
         root.setLayoutParams(new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT));
@@ -94,9 +106,7 @@ public class ViewInflater {
 
     private View createNewView(XmlPullParser parser) {
         View view;
-        if ("FrameLayout".equals(parser.getName())) {
-            view = new FrameLayout(mContext);
-        } else if ("RelativeLayout".equals(parser.getName())) {
+        if ("RelativeLayout".equals(parser.getName())) {
             view = new RelativeLayout(mContext);
         } else if ("LinearLayout".equals(parser.getName())) {
             view = new LinearLayout(mContext);
@@ -139,20 +149,30 @@ public class ViewInflater {
         // Setup specific views
         //
         AttributesHelper attributesHelper = new AttributesHelper(mContext, attrs);
+
+        // extends ViewGroup
         if (view instanceof  RelativeLayout) {
             attributesHelper.setup((RelativeLayout) view);
         } else if (view instanceof LinearLayout) {
             attributesHelper.setup((LinearLayout) view);
-        } else if (view instanceof ScrollView) {
+        }
+        // extends FrameLayout
+        else if (view instanceof ScrollView) {
             attributesHelper.setup((ScrollView) view);
-        } else if (view instanceof ImageView) {
-            attributesHelper.setup((ImageView) view);
+        }
+        // extends CompoundButton
+        else if (view instanceof RadioButton) {
+            attributesHelper.setup((RadioButton) view);
+        }
+        // extends TextView
+        else if (view instanceof Button) {
+            attributesHelper.setup((Button) view);
         } else if (view instanceof TextView) {
             attributesHelper.setup((TextView) view);
-        } else if (view instanceof RadioButton) {
-            attributesHelper.setup((RadioButton) view);
-        } else if (view instanceof Button) {
-            attributesHelper.setup((Button) view);
+        }
+        // extends View
+        else if (view instanceof ImageView) {
+            attributesHelper.setup((ImageView) view);
         }
 
         attributesHelper.applyUniversalAttributes(view);
@@ -166,7 +186,7 @@ public class ViewInflater {
     }
 
     private void printViewGroupHelper(ViewGroup root, int depth) {
-        Log.d(TAG, createTabs(depth) + root.getClass().getName());
+        Log.d(TAG, createTabs(depth) + root.getClass().getName() + " " + root);
 
         for (int i = 0; i < root.getChildCount(); i++) {
             View child = root.getChildAt(i);
@@ -181,7 +201,7 @@ public class ViewInflater {
             } else if (!(child instanceof ImageView)) {
                 childText = ((TextView)child).getText().toString();
             } else {
-                // Wiews that don't have text - ImageView
+                // Views that don't have text - ImageView
             }
             Log.d(TAG, createTabs(depth + 1) + child.getClass().getName() + " --- " + childText);
         }

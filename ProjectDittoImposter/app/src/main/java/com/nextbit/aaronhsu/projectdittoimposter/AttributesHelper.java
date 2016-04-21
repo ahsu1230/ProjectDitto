@@ -5,8 +5,11 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -33,7 +36,7 @@ public class AttributesHelper {
     }
 
     public void setup(RelativeLayout view) {
-
+        setupLayoutParams(view);
     }
 
     public void setup(LinearLayout view) {
@@ -50,8 +53,20 @@ public class AttributesHelper {
             String srcVal = mAttrs.get("android:src");
             String srcPath = null;
             if (srcVal.contains("ditto_look")) {
-                srcPath = TransformActivity.IMAGE_PATH_1;
-            } // else include other images
+                srcPath = TransformActivity.IMAGE_PATH_1_1;
+            } else if (srcVal.contains("ditto_gen1")) {
+                srcPath = TransformActivity.IMAGE_PATH_3_1;
+            } else if (srcVal.contains("ditto_gen2")) {
+                srcPath = TransformActivity.IMAGE_PATH_3_2;
+            } else if (srcVal.contains("ditto_gen3")) {
+                srcPath = TransformActivity.IMAGE_PATH_3_3;
+            } else if (srcVal.contains("ditto_gen5shiny")) {
+                srcPath = TransformActivity.IMAGE_PATH_3_5;
+            } else if (srcVal.contains("ditto_gen5")) {
+                srcPath = TransformActivity.IMAGE_PATH_3_4;
+            }
+            // else if - include other images
+
             if (srcPath != null) {
                 view.setImageURI(Uri.parse(srcPath));
             }
@@ -66,6 +81,19 @@ public class AttributesHelper {
         if (mAttrs.containsKey("android:textColor")) {
             view.setTextColor(Color.parseColor(mAttrs.get("android:textColor")));
         }
+
+        if (mAttrs.containsKey("android:textAllCaps")) {
+            view.setAllCaps(true);
+        }
+
+        if (mAttrs.containsKey("android:textSize")) {
+            String textSizeStr = mAttrs.get("android:textSize");
+            int unitIndex = textSizeStr.indexOf("sp");
+            if (unitIndex >= 0 && textSizeStr.substring(unitIndex).equals("sp")) {
+                float size = Float.parseFloat(textSizeStr.substring(0, unitIndex));
+                view.setTextSize(TypedValue.COMPLEX_UNIT_SP, size);
+            }
+        }
     }
 
     public void setup(Button view) {
@@ -74,10 +102,27 @@ public class AttributesHelper {
         if (mAttrs.containsKey("android:textColor")) {
             view.setTextColor(Color.parseColor(mAttrs.get("android:textColor")));
         }
+
+        view.setClickable(false);
+        view.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                Log.d(TAG, "Button: ignore touch...");
+                return false;
+            }
+        });
     }
 
     public void setup(RadioButton view) {
         setupLayoutParams(view);
+        view.setClickable(false);
+        view.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                Log.d(TAG, "RadioButton: ignore touch...");
+                return false;
+            }
+        });
     }
 
     public void applyUniversalAttributes(View view) {
@@ -154,6 +199,32 @@ public class AttributesHelper {
         }
     }
 
+    private void setupLayoutParams(RelativeLayout view) {
+        String widthStr = mAttrs.get("android:layout_width");
+        String heightStr = mAttrs.get("android:layout_height");
+        if (widthStr == null || heightStr == null) {
+            Log.d(TAG, "setupLayoutParams aborted");
+            return;
+        }
+        int width = 100;
+        int height = 100;
+
+        if (widthStr.equals("wrap_content")) {
+            width = RelativeLayout.LayoutParams.WRAP_CONTENT;
+        } else if (widthStr.equals("match_parent") || widthStr.equals("fill_parent")) {
+            width = RelativeLayout.LayoutParams.MATCH_PARENT;
+        }
+
+        if (heightStr.equals("wrap_content")) {
+            height = RelativeLayout.LayoutParams.WRAP_CONTENT;
+        } else if (heightStr.equals("match_parent") || heightStr.equals("fill_parent")) {
+            height = RelativeLayout.LayoutParams.MATCH_PARENT;
+        }
+
+        RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(width, height);
+        view.setLayoutParams(params);
+    }
+
     private void setupLayoutParams(LinearLayout view) {
         String widthStr = mAttrs.get("android:layout_width");
         String heightStr = mAttrs.get("android:layout_height");
@@ -176,15 +247,21 @@ public class AttributesHelper {
             height = LinearLayout.LayoutParams.MATCH_PARENT;
         }
 
-        RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(width, height);
-        if (mAttrs.containsKey("android:layout_centerInParent")) {
-            params.addRule(RelativeLayout.CENTER_IN_PARENT);
-        } else if (mAttrs.containsKey("android:layout_centerHorizontal")) {
-            params.addRule(RelativeLayout.CENTER_HORIZONTAL);
-        } else if (mAttrs.containsKey("android:layout_centerVertical")) {
-            params.addRule(RelativeLayout.CENTER_VERTICAL);
+        ViewGroup.LayoutParams params = new LinearLayout.LayoutParams(width, height);
+        if (mAttrs.containsKey("android:gravity")) {
+            String gravity = mAttrs.get("android:gravity");
+            if ("center".equals(gravity)) {
+                ((LinearLayout.LayoutParams)params).gravity = Gravity.CENTER;
+            }
         }
+
         view.setLayoutParams(params);
+        if (mAttrs.containsKey("android:gravity")) {
+            String gravity = mAttrs.get("android:gravity");
+            if ("center".equals(gravity)) {
+                view.setGravity(Gravity.CENTER);
+            }
+        }
     }
 
     private void setupLayoutParams(View view) {
@@ -212,25 +289,25 @@ public class AttributesHelper {
             height = convertDpToPx(convertDpToInt(heightStr));
         }
 
-        TableRow.LayoutParams params = new TableRow.LayoutParams(width, height);
+        ViewGroup.LayoutParams params = new TableRow.LayoutParams(width, height);
         if (mAttrs.containsKey("android:layout_gravity")) {
             String gravity = mAttrs.get("android:layout_gravity");
             if ("center_horizontal".equals(gravity)) {
-                params.gravity = Gravity.CENTER_HORIZONTAL;
+                ((TableRow.LayoutParams)params).gravity = Gravity.CENTER_HORIZONTAL;
             } else if ("center_vertical".equals(gravity)) {
-                params.gravity = Gravity.CENTER_VERTICAL;
+                ((TableRow.LayoutParams)params).gravity = Gravity.CENTER_VERTICAL;
             } else if ("center".equals(gravity)) {
-                params.gravity = Gravity.CENTER;
+                ((TableRow.LayoutParams)params).gravity = Gravity.CENTER;
             }
         }
 
         if (mAttrs.containsKey("android:layout_margin")) {
             String marginStr = mAttrs.get("android:layout_margin");
-            params.setMargins(
-                convertDpToPx(convertDpToInt(marginStr)),
-                convertDpToPx(convertDpToInt(marginStr)),
-                convertDpToPx(convertDpToInt(marginStr)),
-                convertDpToPx(convertDpToInt(marginStr)));
+            ((TableRow.LayoutParams)params).setMargins(
+                    convertDpToPx(convertDpToInt(marginStr)),
+                    convertDpToPx(convertDpToInt(marginStr)),
+                    convertDpToPx(convertDpToInt(marginStr)),
+                    convertDpToPx(convertDpToInt(marginStr)));
         } else {
             int leftPx = 0, topPx = 0, rightPx = 0, bottomPx = 0;
             if (mAttrs.containsKey("android:layout_marginLeft")) {
@@ -249,7 +326,7 @@ public class AttributesHelper {
                 String marginStr = mAttrs.get("android:layout_marginBottom");
                 bottomPx = convertDpToPx(convertDpToInt(marginStr));
             }
-            params.setMargins(leftPx, topPx, rightPx, bottomPx);
+            ((TableRow.LayoutParams)params).setMargins(leftPx, topPx, rightPx, bottomPx);
         }
 
         view.setLayoutParams(params);
