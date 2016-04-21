@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">ProjectDittoImposter</string>
+
+    <string name="state_ready">Ready to impersonate</string>
+    <string name="state_error">Failed to impersonate</string>
+    <string name="action_settings">Settings</string>
+</resources>
