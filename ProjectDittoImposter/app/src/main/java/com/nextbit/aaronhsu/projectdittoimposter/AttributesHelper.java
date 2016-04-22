@@ -46,6 +46,7 @@ public class AttributesHelper {
 
     public void setup(ScrollView view) {
         setupLayoutParams(view);
+        view.setTag("scroll-view");
     }
 
     public void setup(ImageView view) {
@@ -131,6 +132,10 @@ public class AttributesHelper {
             // todo (aaron) is the way to do ids?
             int id = view.generateViewId();
             view.setId(id);
+        }
+
+        if (mAttrs.containsKey("android:tag")) {
+            view.setTag(mAttrs.get("android:tag"));
         }
 
         if (mAttrs.containsKey("android:background")) {

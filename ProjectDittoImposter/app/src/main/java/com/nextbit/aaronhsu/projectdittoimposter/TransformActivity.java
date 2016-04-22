@@ -18,6 +18,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import org.xmlpull.v1.XmlPullParser;
@@ -39,8 +40,6 @@ public class TransformActivity extends Activity {
     public static final String IMAGE_PATH_3_4 = "/storage/emulated/0/DittoLayouts/pics/ditto_gen5.png";
     public static final String IMAGE_PATH_3_5 = "/storage/emulated/0/DittoLayouts/pics/ditto_gen5shiny.png";
 
-    static final int MIN_DISTANCE = 100;
-
     // Intents
     public static final String ACTION_REQUEST_UPDATE = "com.nextbit.aaronhsu.projectdittoimposter.REQUEST_UPDATE";
     public static final String ACTION_UPDATE_LAYOUT = "com.nextbit.aaronhsu.projectdittoimposter.UPDATE_LAYOUT";
@@ -61,12 +60,8 @@ public class TransformActivity extends Activity {
     private WifiP2pManager.Channel mChannel;
 
     // Touch
-    private float lastDownX, lastDownY, lastUpX, lastUpY;
-//    private GestureDetector gestureDetector;
-//    private View.OnTouchListener gestureListener;
-//    private static final int SWIPE_MIN_DISTANCE = 120;
-//    private static final int SWIPE_MAX_OFF_PATH = 250;
-//    private static final int SWIPE_THRESHOLD_VELOCITY = 200;
+    public GestureDetector mDetector;
+
 
     //
     // Overriden methods
@@ -86,13 +81,9 @@ public class TransformActivity extends Activity {
             }
         });
 
-//        gestureDetector = new GestureDetector(this, new MyGestureDetector());
-//        gestureListener = new View.OnTouchListener() {
-//            public boolean onTouch(View v, MotionEvent event) {
-//                return gestureDetector.onTouchEvent(event);
-//            }
-//        };
+        mDetector = new GestureDetector(this, new MyGestureListener());
 
+        // Permissions
         if (shouldAskPermission()) {
             requestPermissions(PERMISSIONS_STORAGE, PERM_REQUEST_CODE);
         }
@@ -214,128 +205,57 @@ public class TransformActivity extends Activity {
             Log.d(TAG, "Setting new content view");
             setContentView(newRoot);
 
-            Log.d(TAG, "Setup click listener on new root " + newRoot);
-            setupTouchListenerOnRoot(newRoot);
-//            Log.d(TAG, "Setup click listener on getRootView() " + getRootView());
-//            setupTouchListenerOnRoot(getRootView());
-
         } catch (IOException e) {
             Log.e(TAG, "Error parsing xml file " + xmlFilePath, e);
         }
     }
 
-//    private void setupTouchListenerOnRoot(View view) {
-//        view.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                Toast.makeText(getApplicationContext(), "Click!", Toast.LENGTH_SHORT).show();
-//            }
-//        });
-//        view.setOnTouchListener(gestureListener);
-//    }
-//
-//    class MyGestureDetector extends GestureDetector.SimpleOnGestureListener {
-//        @Override
-//        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-//            try {
-//                if (Math.abs(e1.getY() - e2.getY()) > SWIPE_MAX_OFF_PATH)
-//                    return false;
-//                // right to left swipe
-//                if(e1.getX() - e2.getX() > SWIPE_MIN_DISTANCE && Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
-//                    Toast.makeText(getApplicationContext(), "Left Swipe", Toast.LENGTH_SHORT).show();
-//                }  else if (e2.getX() - e1.getX() > SWIPE_MIN_DISTANCE && Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
-//                    Toast.makeText(getApplicationContext(), "Right Swipe", Toast.LENGTH_SHORT).show();
-//                } else if (e1.getY() - e2.getY() > SWIPE_MIN_DISTANCE && Math.abs(velocityY) > SWIPE_THRESHOLD_VELOCITY) {
-//                    Toast.makeText(getApplicationContext(), "Up Swipe", Toast.LENGTH_SHORT).show();
-//                } else if (e2.getY() - e1.getY() > SWIPE_MIN_DISTANCE && Math.abs(velocityY) > SWIPE_THRESHOLD_VELOCITY) {
-//                    Toast.makeText(getApplicationContext(), "Down Swipe", Toast.LENGTH_SHORT).show();
-//                }
-//            } catch (Exception e) {
-//                // nothing
-//            }
-//            return false;
-//        }
-//
-//        @Override
-//        public boolean onDown(MotionEvent e) {
-//            return true;
-//        }
-//    }
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        Log.d(TAG, "onTouchEvent");
+        this.mDetector.onTouchEvent(event);
+        return super.onTouchEvent(event);
+    }
 
-    private void setupTouchListenerOnRoot(View view) {
-        view.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                int action = event.getAction();
-                int x = (int) event.getX();
-                int y = (int) event.getY();
-                Log.d(TAG, "Touch: " + action + " (" + x + ", " + y + ")");
+    class MyGestureListener extends GestureDetector.SimpleOnGestureListener {
+        @Override
+        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+            Log.d(TAG, "onFling ");
+            return true;
+        }
 
-                float downX = 0, downY = 0, upX = 0, upY = 0;
+        @Override
+        public boolean onDown(MotionEvent e) {
+            int x = (int) e.getRawX();
+            int y = (int) (e.getRawY() - 240);
+            Log.d(TAG, "onDown (" + x + ", " + y + ")");
+            new PingToClickTask(mReceiver).execute(x, y);
+            return true;
+        }
 
-                switch (action) {
-                    case MotionEvent.ACTION_DOWN:
-                        downX = event.getX();
-                        downY = event.getY();
-                        if (lastDownX == 0 && lastDownY == 0) {
-                            lastDownX = downX;
-                            lastDownY = downY;
-                            return true;
-                        }
-                        break;
-                    case MotionEvent.ACTION_UP:
-                        upX = event.getX();
-                        upY = event.getY();
-                        break;
-                    default:
-                        break;
-                }
+        @Override
+        public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX,
+                float distanceY) {
+            int x1 = (int) e1.getRawX();
+            int y1 = (int) (e1.getRawY() - 240);
+            int x2 = (int) e2.getRawX();
+            int y2 = (int) (e2.getRawY() - 240);
+            Log.d(TAG, "onScroll "
+                    + "(" + x1 + ", " + y1 + ") to "
+                    + "(" + x2 + ", " + y2 + ") "
+                    + distanceX + " " + distanceY);
+            new PingToScrollTask(mReceiver).execute(x1, y1, x2, y2);
 
-                float deltaX = upX - lastDownX;
-                float deltaY = upY - lastDownY;
-                Log.d(TAG, "Click deltas: (" + deltaX + ", " + deltaY + ")");
-
-                if (Math.abs(deltaX) < MIN_DISTANCE && Math.abs(deltaY) < MIN_DISTANCE) {
-                    Log.d(TAG, "DETECTED CLICK!");
-                    new PingToClickTask(mReceiver).execute((int) upX, (int) upY);
-                    lastDownX = 0;
-                    lastDownY = 0;
-                } else if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > MIN_DISTANCE) {
-                    if (deltaX > 0) {
-                        Log.d(TAG, "DETECTED SWIPE RIGHT!");
-                        new PingToSwipeTask(mReceiver).execute(
-                                (int) lastDownX, (int) lastDownY,
-                                (int) upX, (int) upY);
-                        lastDownX = 0;
-                        lastDownY = 0;
-                    } else {
-                        Log.d(TAG, "DETECTED SWIPE LEFT!");
-                        new PingToSwipeTask(mReceiver).execute(
-                                (int) lastDownX, (int) lastDownY,
-                                (int) upX, (int) upY);
-                        lastDownX = 0;
-                        lastDownY = 0;
-                    }
-                } else if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > MIN_DISTANCE) {
-                    if (deltaY > 0) {
-                        Log.d(TAG, "DETECTED SWIPE UP!");
-                        new PingToSwipeTask(mReceiver).execute(
-                                (int) lastDownX, (int) lastDownY,
-                                (int) upX, (int) upY);
-                        lastDownX = 0;
-                        lastDownY = 0;
-                    } else {
-                        Log.d(TAG, "DETECTED SWIPE DOWN!");
-                        new PingToSwipeTask(mReceiver).execute(
-                                (int) lastDownX, (int) lastDownY,
-                                (int) upX, (int) upY);
-                        lastDownX = 0;
-                        lastDownY = 0;
-                    }
-                }
-                return true;
+            // Apply your own scroll!
+            int distX = x1 - x2;
+            int distY = y1 - y2;
+            View scrollView = getRootView().findViewWithTag("scroll-view");
+            if (scrollView != null) {
+                scrollView.scrollBy(distX, distY);
             }
-        });
+
+            return true;
+        }
     }
 
     //
@@ -408,27 +328,27 @@ public class TransformActivity extends Activity {
         }
     }
 
-    private class PingToSwipeTask extends AsyncTask<Integer, Void, Void> {
+    private class PingToScrollTask extends AsyncTask<Integer, Void, Void> {
         final WifiDirectReceiver mReceiver;
 
-        public PingToSwipeTask(WifiDirectReceiver receiver) {
+        public PingToScrollTask(WifiDirectReceiver receiver) {
             mReceiver = receiver;
         }
 
         @Override
         protected Void doInBackground(Integer[] params) {
-            Log.d(TAG, "PingToSwipeTask... doInBackground()");
+            Log.d(TAG, "PingToScrollTask... doInBackground()");
             int x1 = params[0].intValue();
             int y1 = params[1].intValue();
             int x2 = params[2].intValue();
             int y2 = params[3].intValue();
-            mReceiver.getWifiPinger().pingToRequestSwipe(x1, y1, x2, y2);
+            mReceiver.getWifiPinger().pingToRequestScroll(x1, y1, x2, y2);
             return null;
         }
 
         @Override
         protected void onPostExecute(Void o) {
-            Log.d(TAG, "PingToSwipeTask... postExecute()");
+            Log.d(TAG, "PingToScrollTask... postExecute()");
         }
     }
 

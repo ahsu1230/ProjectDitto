@@ -35,6 +35,7 @@ public class ViewInflater {
         public MyFrameLayout(Context context) {
             super(context);
         }
+
         @Override
         public boolean onInterceptTouchEvent(MotionEvent ev) {
             Log.d(TAG, "%%% pass touch to parent! %%%");
@@ -126,7 +127,6 @@ public class ViewInflater {
         }
 
         setAttributes(view, parser);
-
         return view;
     }
 

@@ -1,6 +1,5 @@
 package com.nextbit.aaronhsu.projectdittoimposter;
 
-import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
@@ -36,7 +35,7 @@ public class WifiPinger {
     public static final byte MSG_REQUEST_MIMIC = 10;
     public static final byte MSG_REQUEST_CLICK = 11;
     public static final byte MSG_REQUEST_HOLD = 12;
-    public static final byte MSG_REQUEST_SWIPE = 13;
+    public static final byte MSG_REQUEST_SCROLL = 13;
     public static final byte MSG_REQUEST_ROTATE = 14;
 
     private final Context mContext;
@@ -123,8 +122,8 @@ public class WifiPinger {
         }
     }
 
-    public void pingToRequestSwipe(int downX, int downY, int upX, int upY) {
-        Log.d(TAG, "*** ping to interact! click (" + downX + ", " + downY + ") to (" + upX + ", " + upY +") *********");
+    public void pingToRequestScroll(int downX, int downY, int upX, int upY) {
+        Log.d(TAG, "*** ping to interact! scroll (" + downX + ", " + downY + ") to (" + upX + ", " + upY +") *********");
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
              DataOutputStream outStream = new DataOutputStream(baos)) {
             outStream.writeInt(downX);
@@ -133,7 +132,7 @@ public class WifiPinger {
             outStream.writeInt(upY);
             outStream.flush();
             byte[] data = baos.toByteArray();
-            pingMessage(MSG_REQUEST_SWIPE, data);
+            pingMessage(MSG_REQUEST_SCROLL, data);
         } catch (IOException e) {
             Log.e(TAG, "Error creating output streams", e);
         }
@@ -195,8 +194,8 @@ public class WifiPinger {
             } else if (MSG_REQUEST_CLICK == respMsg) {
                 int changed = is.read();
                 handleResponseToClick(changed == 1 ? true : false);
-            } else if (MSG_REQUEST_SWIPE == respMsg) {
-                handleResponseToSwipe();
+            } else if (MSG_REQUEST_SCROLL == respMsg) {
+                handleResponseToScroll();
             } else if (MSG_REQUEST_ROTATE == respMsg) {
                 handleResponseToRotate();
             } else {
@@ -224,8 +223,8 @@ public class WifiPinger {
         }
     }
 
-    private void handleResponseToSwipe() {
-        Log.d(TAG, "Handling response from SWIPE");
+    private void handleResponseToScroll() {
+        Log.d(TAG, "Handling response from SCROLL");
     }
 
     private void handleResponseToRotate() {

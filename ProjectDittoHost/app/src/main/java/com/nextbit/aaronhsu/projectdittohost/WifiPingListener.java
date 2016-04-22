@@ -37,7 +37,7 @@ public class WifiPingListener {
     private static final byte MSG_REQUEST_MIMIC = 10;
     private static final byte MSG_REQUEST_CLICK = 11;
     private static final byte MSG_REQUEST_HOLD = 12;
-    private static final byte MSG_REQUEST_SWIPE = 13;
+    private static final byte MSG_REQUEST_SCROLL = 13;
     private static final byte MSG_REQUEST_ROTATE = 14;
 
     private int mCurrentPage;
@@ -107,8 +107,8 @@ public class WifiPingListener {
                 case MSG_REQUEST_CLICK:
                     onClick(client);
                     break;
-                case MSG_REQUEST_SWIPE:
-                    onSwipe(client);
+                case MSG_REQUEST_SCROLL:
+                    onScroll(client);
                     break;
                 case MSG_REQUEST_ROTATE:
                     onRotate(client);
@@ -196,8 +196,8 @@ public class WifiPingListener {
         }
     }
 
-    private void onSwipe(Socket clientSocket) {
-        Log.d(TAG, "onSwipe()");
+    private void onScroll(Socket clientSocket) {
+        Log.d(TAG, "onScroll()");
         // Read first coordinates (x1, y1) and second coordinates (x2, y2)
         int x1, x2, y1, y2;
         try {
@@ -206,15 +206,15 @@ public class WifiPingListener {
             y1 = dis.readInt();
             x2 = dis.readInt();
             y2 = dis.readInt();
-            Log.d(TAG, "Read swipe coordinates from (" + x1 + ", " + y1 + ") to (" + x2 + ", " + y2 + ")");
+            Log.d(TAG, "Read scroll coordinates from (" + x1 + ", " + y1 + ") to (" + x2 + ", " + y2 + ")");
         } catch (IOException e) {
             Log.e(TAG, "Problem reading socket InputStream ", e);
             return;
         }
 
-        // Apply Swipe action!
-        Log.d(TAG, "Sending intent for swipe! on page " + mCurrentPage);
-        Intent intent = new Intent(MainActivity.ACTION_APPLY_SWIPE);
+        // Apply Scroll action!
+        Log.d(TAG, "Sending intent for scroll! on page " + mCurrentPage);
+        Intent intent = new Intent(MainActivity.ACTION_APPLY_SCROLL);
         intent.putExtra(MainActivity.EXTRA_CLICK_X1, x1);
         intent.putExtra(MainActivity.EXTRA_CLICK_Y1, y1);
         intent.putExtra(MainActivity.EXTRA_CLICK_X2, x2);
