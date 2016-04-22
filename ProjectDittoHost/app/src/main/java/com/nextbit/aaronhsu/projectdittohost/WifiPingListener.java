@@ -10,6 +10,7 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -23,6 +24,16 @@ public class WifiPingListener {
 
     public static final String HOST_DEVICE_ADDRESS = "cc:f3:a5:88:22:2a";
     public static final String HOST_DEVICE_IP_ADDRESS = "10.1.12.104";
+
+    public static final String HOST_PAGE_PATH_1 = "/storage/emulated/0/DittoHostLayouts/host_page1.xml";
+    public static final String HOST_PAGE_PATH_2 = "/storage/emulated/0/DittoHostLayouts/host_page2.xml";
+    public static final String HOST_PAGE_PATH_3 = "/storage/emulated/0/DittoHostLayouts/host_page3.xml";
+    public static final String IMAGE_PATH_1_1 = "/storage/emulated/0/DittoHostLayouts/ditto_look.png";
+    public static final String IMAGE_PATH_3_1 = "/storage/emulated/0/DittoHostLayouts/ditto_gen1.png";
+    public static final String IMAGE_PATH_3_2 = "/storage/emulated/0/DittoHostLayouts/ditto_gen2.png";
+    public static final String IMAGE_PATH_3_3 = "/storage/emulated/0/DittoHostLayouts/ditto_gen3.png";
+    public static final String IMAGE_PATH_3_4 = "/storage/emulated/0/DittoHostLayouts/ditto_gen5.png";
+    public static final String IMAGE_PATH_3_5 = "/storage/emulated/0/DittoHostLayouts/ditto_gen5shiny.png";
 
     private static final byte MSG_REQUEST_MIMIC = 10;
     private static final byte MSG_REQUEST_CLICK = 11;
@@ -112,11 +123,11 @@ public class WifiPingListener {
 
         String filePath = null;
         if (mCurrentPage == 1) {
-            filePath = FileStreamer.HOST_PAGE_PATH_1;
+            filePath = HOST_PAGE_PATH_1;
         } else if (mCurrentPage == 2) {
-            filePath = FileStreamer.HOST_PAGE_PATH_2;
+            filePath = HOST_PAGE_PATH_2;
         } else if (mCurrentPage == 3) {
-            filePath = FileStreamer.HOST_PAGE_PATH_3;
+            filePath = HOST_PAGE_PATH_3;
         }
 
         if (filePath == null) {
@@ -131,7 +142,7 @@ public class WifiPingListener {
             DataOutputStream dos = new DataOutputStream(clientSocket.getOutputStream());
             dos.writeLong(f.length());
             // write file stream
-            FileStreamer.copyStream(fis, clientSocket.getOutputStream());
+            copyStream(fis, clientSocket.getOutputStream());
         } catch (IOException e) {
             Log.e(TAG, "Error with InputStream ", e);
         }
@@ -163,17 +174,17 @@ public class WifiPingListener {
         // Expecting a change during click? Set mCurrentPage
         boolean changed = false;
         if (mCurrentPage == 1) {
-            if (x >= 350 && x <= 650 && y >= 700 && y <= 1000) {
+            if (x >= 340 && x <= 610 && y >= 770 && y <= 910) {
                 changed = true;
                 mCurrentPage = 2;
             }
         } else if (mCurrentPage == 2) {
-            if (x >= 200 && x <= 1000 && y >= 1350 && y <= 1450) {
+            if (x >= 80 && x <= 1000 && y >= 1290 && y <= 1450) {
                 changed = true;
                 mCurrentPage = 3;
             }
         } else if (mCurrentPage == 3) {
-            if (x >= 150 && x <= 400 && y >= 150 && y <= 400) {
+            if (x >= 120 && x <= 380 && y >= 110 && y <= 260) {
                 changed = true;
                 mCurrentPage = 2;
             }
@@ -189,6 +200,17 @@ public class WifiPingListener {
         } catch (IOException e) {
             Log.e(TAG, "Problem writing to socket OutputStream", e);
             return;
+        }
+    }
+
+    public void copyStream(InputStream in, OutputStream out) throws IOException {
+        byte[] buf = new byte[8192];
+        long totalSizeRead = 0;
+        int len = 0;
+        while ((len = in.read(buf)) != -1) {
+            totalSizeRead += len;
+            Log.d(TAG, "copying stream... " + totalSizeRead);
+            out.write(buf, 0, len);
         }
     }
 }

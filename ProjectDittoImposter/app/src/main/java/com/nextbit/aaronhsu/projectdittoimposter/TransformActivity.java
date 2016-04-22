@@ -243,14 +243,22 @@ public class TransformActivity extends Activity {
                 } else if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > MIN_DISTANCE) {
                     if (deltaX > 0) {
                         Log.d(TAG, "DETECTED SCROLL RIGHT!");
+                        lastDownX = 0;
+                        lastDownY = 0;
                     } else {
                         Log.d(TAG, "DETECTED SCROLL LEFT!");
+                        lastDownX = 0;
+                        lastDownY = 0;
                     }
                 } else if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > MIN_DISTANCE) {
                     if (deltaY > 0) {
                         Log.d(TAG, "DETECTED SCROLL UP!");
+                        lastDownX = 0;
+                        lastDownY = 0;
                     } else {
                         Log.d(TAG, "DETECTED SCROLL DOWN!");
+                        lastDownX = 0;
+                        lastDownY = 0;
                     }
                 }
                 return true;
