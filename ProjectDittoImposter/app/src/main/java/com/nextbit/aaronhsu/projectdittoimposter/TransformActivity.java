@@ -7,14 +7,17 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Display;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.Toast;
 
@@ -156,6 +159,14 @@ public class TransformActivity extends Activity {
                 }
                 break;
         }
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        Log.d(TAG, "onConfigurationChanged ");
+        final int orientation = getResources().getConfiguration().orientation;
+        new PingToRotateTask(mReceiver).execute(orientation);
     }
 
     //
@@ -333,6 +344,27 @@ public class TransformActivity extends Activity {
         @Override
         protected void onPostExecute(Void o) {
             Log.d(TAG, "PingToClickTask... postExecute()");
+        }
+    }
+
+    private class PingToRotateTask extends AsyncTask<Integer, Void, Void> {
+        final WifiDirectReceiver mReceiver;
+
+        public PingToRotateTask(WifiDirectReceiver receiver) {
+            mReceiver = receiver;
+        }
+
+        @Override
+        protected Void doInBackground(Integer[] params) {
+            Log.d(TAG, "PingToRotateTask... doInBackground()");
+            int orientation = params[0].intValue();
+            mReceiver.getWifiPinger().pingToRequestRotate(orientation);
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void o) {
+            Log.d(TAG, "PingToRotateTask... postExecute()");
         }
     }
 

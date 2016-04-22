@@ -105,7 +105,7 @@ public class WifiPinger {
     }
 
     public void pingToRequestMimic() {
-        Log.d(TAG, "*** ping to mimic host!");
+        Log.d(TAG, "*** ping to mimic host! ********");
         pingMessage(MSG_REQUEST_MIMIC, null);
     }
 
@@ -118,6 +118,19 @@ public class WifiPinger {
             outStream.flush();
             byte[] data = baos.toByteArray();
             pingMessage(MSG_REQUEST_CLICK, data);
+        } catch (IOException e) {
+            Log.e(TAG, "Error creating output streams", e);
+        }
+    }
+
+    public void pingToRequestRotate(int orientation) {
+        Log.d(TAG, "*** ping to interact! rotate " + orientation + " *********");
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+             DataOutputStream outStream = new DataOutputStream(baos)) {
+            outStream.writeInt(orientation);
+            outStream.flush();
+            byte[] data = baos.toByteArray();
+            pingMessage(MSG_REQUEST_ROTATE, data);
         } catch (IOException e) {
             Log.e(TAG, "Error creating output streams", e);
         }
@@ -166,6 +179,8 @@ public class WifiPinger {
             } else if (MSG_REQUEST_CLICK == respMsg) {
                 int changed = is.read();
                 handleResponseToClick(changed == 1 ? true : false);
+            } else if (MSG_REQUEST_ROTATE == respMsg) {
+                handleResponseToRotate();
             } else {
                 Log.d(TAG, "Unknown response " + respMsg);
             }
@@ -189,6 +204,10 @@ public class WifiPinger {
         } else {
             Log.d(TAG, "Nothing changed... do nothing");
         }
+    }
+
+    private void handleResponseToRotate() {
+        Log.d(TAG, "Handling response from ROTATE");
     }
 
     public File extractFileStream(long expectedFileSize, InputStream is) {

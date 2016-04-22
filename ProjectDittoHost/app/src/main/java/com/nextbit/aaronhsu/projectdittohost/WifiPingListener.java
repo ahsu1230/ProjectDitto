@@ -109,6 +109,9 @@ public class WifiPingListener {
                 case MSG_REQUEST_CLICK:
                     onClick(client);
                     break;
+                case MSG_REQUEST_ROTATE:
+                    onRotate(client);
+                    break;
                 default:
                     Log.d(TAG, "Message type unknown! " + message);
                     break;
@@ -171,27 +174,16 @@ public class WifiPingListener {
         intent.putExtra(MainActivity.EXTRA_CLICK_Y, y);
         mContext.sendBroadcast(intent);
 
-        // Expecting a change during click? Set mCurrentPage
-        boolean changed = false;
-        if (mCurrentPage == 1) {
-            if (x >= 340 && x <= 610 && y >= 770 && y <= 910) {
-                changed = true;
-                mCurrentPage = 2;
-            }
-        } else if (mCurrentPage == 2) {
-            if (x >= 80 && x <= 1000 && y >= 1290 && y <= 1450) {
-                changed = true;
-                mCurrentPage = 3;
-            }
-        } else if (mCurrentPage == 3) {
-            if (x >= 120 && x <= 380 && y >= 110 && y <= 260) {
-                changed = true;
-                mCurrentPage = 2;
-            }
+        int pageBeforeSleep = mCurrentPage;
+
+        try {
+            Thread.sleep(500);
+        } catch (InterruptedException e) {
+
         }
-        if (changed) {
-            Log.d(TAG, "Something changed! " + mCurrentPage);
-        }
+
+        boolean changed = pageBeforeSleep != mCurrentPage;
+        Log.d(TAG, "Something changed? " + changed);
 
         // send response if something clicked or not, client should call REQUEST_MIMIC
         try {
@@ -201,6 +193,27 @@ public class WifiPingListener {
             Log.e(TAG, "Problem writing to socket OutputStream", e);
             return;
         }
+    }
+
+    private void onRotate(Socket clientSocket) {
+        Log.d(TAG, "onRotate()");
+
+        // Read orientation
+        int orientation;
+        try {
+            DataInputStream dis = new DataInputStream(clientSocket.getInputStream());
+            orientation = dis.readInt();
+            Log.d(TAG, "Read rotate orientation: " + orientation);
+        } catch (IOException e) {
+            Log.e(TAG, "Problem reading socket InputStream ", e);
+            return;
+        }
+
+        // Apply rotate action!
+        Log.d(TAG, "Sending intent for rotate! on page " + mCurrentPage);
+        Intent intent = new Intent(MainActivity.ACTION_APPLY_ROTATE);
+        intent.putExtra(MainActivity.EXTRA_ORIENTATION, orientation);
+        mContext.sendBroadcast(intent);
     }
 
     public void copyStream(InputStream in, OutputStream out) throws IOException {

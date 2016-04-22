@@ -7,6 +7,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -24,11 +25,15 @@ public class MainActivity extends Activity {
     private static final String TAG = "Ditto.MainActivity";
 
     // Intents
+    public static final String ACTION_CHANGE_PAGE = "com.nextbit.aaronhsu.ProjectDittoHost.CHANGE_PAGE";
+    public static final String EXTRA_PAGE = "page";
+
     public static final String ACTION_APPLY_CLICK = "com.nextbit.aaronhsu.ProjectDittoHost.APPLY_CLICK";
     public static final String EXTRA_CLICK_X = "click_x";
     public static final String EXTRA_CLICK_Y = "click_y";
-    public static final String ACTION_CHANGE_PAGE = "com.nextbit.aaronhsu.ProjectDittoHost.CHANGE_PAGE";
-    public static final String EXTRA_PAGE = "page";
+
+    public static final String ACTION_APPLY_ROTATE = "com.nextbit.aaronhsu.ProjectDittoHost.APPLY_ROTATE";
+    public static final String EXTRA_ORIENTATION = "orientation";
 
     // Permissions
     private static String[] PERMISSIONS_STORAGE = {
@@ -50,6 +55,7 @@ public class MainActivity extends Activity {
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(ACTION_APPLY_CLICK);
+        filter.addAction(ACTION_APPLY_ROTATE);
         registerReceiver(mReceiver, filter);
 
         startService(new Intent(this, NetworkService.class));
@@ -79,7 +85,7 @@ public class MainActivity extends Activity {
                         Intent intent = new Intent(getApplicationContext(), NetworkService.class);
                         intent.setAction(ACTION_CHANGE_PAGE);
                         intent.putExtra(EXTRA_PAGE, 2);
-//                        startService(intent);
+                        startService(intent);
                     }
                 }
         );
@@ -95,7 +101,7 @@ public class MainActivity extends Activity {
                         Intent intent = new Intent(getApplicationContext(), NetworkService.class);
                         intent.setAction(ACTION_CHANGE_PAGE);
                         intent.putExtra(EXTRA_PAGE, 3);
-//                        startService(intent);
+                        startService(intent);
                     }
                 }
         );
@@ -111,7 +117,7 @@ public class MainActivity extends Activity {
                         Intent intent = new Intent(getApplicationContext(), NetworkService.class);
                         intent.setAction(ACTION_CHANGE_PAGE);
                         intent.putExtra(EXTRA_PAGE, 2);
-//                        startService(intent);
+                        startService(intent);
                     }
                 }
         );
@@ -167,6 +173,19 @@ public class MainActivity extends Activity {
                 eventTime += 500;
                 ((ViewGroup) getRootView()).dispatchTouchEvent(MotionEvent.obtain(
                         downTime, eventTime, eventAction, x, y, metaState));
+            } else if (ACTION_APPLY_ROTATE.equals(action)) {
+                int orientation = intent.getIntExtra(EXTRA_ORIENTATION, 0);
+                Log.d(TAG, "Applying rotate! " + orientation);
+                if (ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE == orientation) {
+                    Toast.makeText(getApplicationContext(), "Rotate to landscape", Toast.LENGTH_LONG).show();
+                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+                } else if (ActivityInfo.SCREEN_ORIENTATION_PORTRAIT == orientation) {
+                    Toast.makeText(getApplicationContext(), "Rotate to Portrait", Toast.LENGTH_LONG).show();
+                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+                } else if (ActivityInfo.SCREEN_ORIENTATION_USER == orientation) {
+                    Toast.makeText(getApplicationContext(), "Rotate to Orientation_User", Toast.LENGTH_LONG).show();
+                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_USER);
+                }
             }
         }
     }
