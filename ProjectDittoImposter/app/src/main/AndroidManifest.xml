@@ -19,7 +19,7 @@
     <!-- Application -->
     <application
         android:allowBackup="true"
-        android:icon="@mipmap/ditto_launcher"
+        android:icon="@mipmap/pikachu_launcher"
         android:label="@string/app_name"
         android:theme="@style/AppTheme" >
 

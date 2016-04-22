@@ -27,6 +27,20 @@ public class NetworkService extends Service {
         }
     }
 
+//    @Override
+//    public int onStartCommand(Intent intent, int flags, int startId) {
+//        if (intent != null) {
+//            String action = intent.getAction();
+//            Log.d(TAG, "onStartCommand " + action);
+//            if (MainActivity.ACTION_CHANGE_PAGE.equals(action)) {
+//                int page = intent.getIntExtra(MainActivity.EXTRA_PAGE, 1);
+//                mListener.setCurrentPage(page);
+//            }
+//        }
+//
+//        return super.onStartCommand(intent, flags, startId);
+//    }
+
     @Override
     public void onDestroy() {
         super.onDestroy();

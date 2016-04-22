@@ -2,12 +2,14 @@
           package="com.nextbit.aaronhsu.projectdittohost">
 
     <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.GET_TASKS" />
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"/>
 
     <application android:allowBackup="true"
                  android:label="@string/app_name"
-                 android:icon="@mipmap/pikachu_launcher"
+                 android:icon="@mipmap/ditto_launcher"
                  android:theme="@style/AppTheme">
 
         <activity

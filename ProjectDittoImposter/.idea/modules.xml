@@ -2,9 +2,9 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$USER_HOME$/Projects/ProjectDitto/ProjectDittoImposter/ProjectDittoImposter.iml" filepath="$USER_HOME$/Projects/ProjectDitto/ProjectDittoImposter/ProjectDittoImposter.iml" />
-      <module fileurl="file://$USER_HOME$/Projects/ProjectDitto/ProjectDittoImposter/app/app.iml" filepath="$USER_HOME$/Projects/ProjectDitto/ProjectDittoImposter/app/app.iml" />
-      <module fileurl="file://$USER_HOME$/Projects/ProjectDitto/ProjectDittoImposter/libs/libs.iml" filepath="$USER_HOME$/Projects/ProjectDitto/ProjectDittoImposter/libs/libs.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ProjectDittoImposter.iml" filepath="$PROJECT_DIR$/ProjectDittoImposter.iml" />
+      <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/libs/libs.iml" filepath="$PROJECT_DIR$/libs/libs.iml" />
     </modules>
   </component>
 </project>

@@ -6,9 +6,10 @@ import android.net.Uri;
 import android.util.Log;
 
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -43,6 +44,15 @@ public class WifiPingListener {
         mCurrentPage = 1;
     }
 
+    public int getCurrentPage() {
+        return mCurrentPage;
+    }
+
+    public void setCurrentPage(int page) {
+        Log.d(TAG, "Setting current page to: " + page);
+        mCurrentPage = page;
+    }
+
     private Socket getClientSocket() {
         try {
             Log.d(TAG, "Blocking until client accepted...");
@@ -58,6 +68,16 @@ public class WifiPingListener {
         return null;
     }
 
+    public void close() {
+        Log.d(TAG, "Server socket closed");
+        try {
+            mServerSocket.close();
+        } catch (IOException e) {
+            Log.e(TAG, "Error closing server socket ", e);
+        }
+    }
+
+
     public void listenToRespond() {
         Socket client = getClientSocket();
         if (client == null) {
@@ -69,6 +89,8 @@ public class WifiPingListener {
             int message = dis.readByte();
             Log.d(TAG, "Message: " + message + "*********");
 
+            Log.d(TAG, "Responding to message: " + message);
+            client.getOutputStream().write(message);
             switch (message) {
                 case MSG_REQUEST_MIMIC:
                     onMimic(client);
@@ -85,33 +107,41 @@ public class WifiPingListener {
         }
     }
 
-    public void close() {
-        Log.d(TAG, "Server socket closed");
-        try {
-            mServerSocket.close();
-        } catch (IOException e) {
-            Log.e(TAG, "Error closing server socket ", e);
-        }
-    }
-
     private void onMimic(Socket clientSocket) {
-        Log.d(TAG, "onMimic");
-        // Generate response code
-        try {
-            OutputStream os = clientSocket.getOutputStream();
-            os.write(MSG_REQUEST_MIMIC);
-            os.write(mCurrentPage);
-            os.flush();
-            Log.d(TAG, "wrote page number " + mCurrentPage);
-        } catch (IOException e) {
-            Log.e(TAG, "Problem output streaming response", e);
+        Log.d(TAG, "onMimic()");
+
+        String filePath = null;
+        if (mCurrentPage == 1) {
+            filePath = FileStreamer.HOST_PAGE_PATH_1;
+        } else if (mCurrentPage == 2) {
+            filePath = FileStreamer.HOST_PAGE_PATH_2;
+        } else if (mCurrentPage == 3) {
+            filePath = FileStreamer.HOST_PAGE_PATH_3;
         }
+
+        if (filePath == null) {
+            Log.e(TAG, "Unknown page right now... " + mCurrentPage);
+            return;
+        }
+
+        Log.d(TAG, "Commence streaming file " + filePath);
+        File f = new File(filePath);
+        try (FileInputStream fis = new FileInputStream(f)) {
+            // write file length (this tell client when we know when to stop reading)
+            DataOutputStream dos = new DataOutputStream(clientSocket.getOutputStream());
+            dos.writeLong(f.length());
+            // write file stream
+            FileStreamer.copyStream(fis, clientSocket.getOutputStream());
+        } catch (IOException e) {
+            Log.e(TAG, "Error with InputStream ", e);
+        }
+        Log.d(TAG, "Done streaming file!");
     }
 
     private void onClick(Socket clientSocket) {
-        Log.d(TAG, "onClick");
+        Log.d(TAG, "onClick()");
 
-        // Read what's needed
+        // Read coordinates
         int x = 0, y = 0;
         try {
             DataInputStream dis = new DataInputStream(clientSocket.getInputStream());
@@ -119,7 +149,8 @@ public class WifiPingListener {
             y = dis.readInt();
             Log.d(TAG, "Read click coordinates: (" + x + ", " + y + ")");
         } catch (IOException e) {
-            Log.e(TAG, "Problem reading InputStream ", e);
+            Log.e(TAG, "Problem reading socket InputStream ", e);
+            return;
         }
 
         // Apply Click action!
@@ -129,55 +160,35 @@ public class WifiPingListener {
         intent.putExtra(MainActivity.EXTRA_CLICK_Y, y);
         mContext.sendBroadcast(intent);
 
-        // Did Next button get clicked? If so, nextPage is a number. Otherwise 0.
-        int nextPage = 0;
+        // Expecting a change during click? Set mCurrentPage
+        boolean changed = false;
         if (mCurrentPage == 1) {
             if (x >= 350 && x <= 650 && y >= 700 && y <= 1000) {
-                nextPage = 2;
-                sendResourceOverStream(clientSocket);
+                changed = true;
+                mCurrentPage = 2;
             }
         } else if (mCurrentPage == 2) {
             if (x >= 200 && x <= 1000 && y >= 1350 && y <= 1450) {
-                nextPage = 3;
-                sendResourceOverStream(clientSocket);
+                changed = true;
+                mCurrentPage = 3;
             }
         } else if (mCurrentPage == 3) {
-
+            if (x >= 150 && x <= 400 && y >= 150 && y <= 400) {
+                changed = true;
+                mCurrentPage = 2;
+            }
         }
-        if (nextPage > 0) {
-            mCurrentPage = nextPage;
+        if (changed) {
+            Log.d(TAG, "Something changed! " + mCurrentPage);
         }
 
-        // Generate response code
-        Log.d(TAG, "Generating response " + nextPage);
+        // send response if something clicked or not, client should call REQUEST_MIMIC
         try {
             OutputStream os = clientSocket.getOutputStream();
-            os.write(MSG_REQUEST_CLICK);
-            byte action = (byte) nextPage;
-            os.write(action);
-            os.flush();
-            Log.d(TAG, "wrote action " + action);
+            os.write(changed ? 1 : 0);
         } catch (IOException e) {
-            Log.e(TAG, "Problem output streaming response", e);
-        }
-    }
-
-    public void sendResourceOverStream(Socket clientSocket) {
-        String path = null;
-        String packageName = mContext.getApplicationContext().getPackageName();
-        if (mCurrentPage == 1) {
-            Uri uri = Uri.parse("android.resource://" + packageName + "/" + R.layout.host_page1);
-            path = uri.getPath();
-        } else if (mCurrentPage == 2) {
-            Uri uri = Uri.parse("android.resource://" + packageName + "/" + R.layout.host_page2);
-            path = uri.getPath();
-        } else if (mCurrentPage == 3) {
-            Uri uri = Uri.parse("android.resource://" + packageName + "/" + R.layout.host_page3);
-            path = uri.getPath();
-        }
-        if (path != null) {
-            File f = new File(path);
-            Log.d(TAG, "****** Preparing to send Resource with path: " + f.getAbsolutePath() + " " + f.exists());
+            Log.e(TAG, "Problem writing to socket OutputStream", e);
+            return;
         }
     }
 }

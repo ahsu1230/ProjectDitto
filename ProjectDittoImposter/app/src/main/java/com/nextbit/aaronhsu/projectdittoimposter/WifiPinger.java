@@ -3,22 +3,21 @@ package com.nextbit.aaronhsu.projectdittoimposter;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
-import android.net.Uri;
 import android.util.Log;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.math.BigInteger;
 import java.net.BindException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.UnknownHostException;
+import java.util.UUID;
 
 /**
  * Created by aaronhsu on 4/20/16.
@@ -32,6 +31,8 @@ public class WifiPinger {
     public static final String HOST_DEVICE_ADDRESS = "cc:f3:a5:88:22:2a";
     public static final String HOST_DEVICE_IP_ADDRESS = "10.1.12.104";
 
+    public static final String LAYOUT_DIR_PATH = "/storage/emulated/0/DittoLayouts/Layouts";
+
     public static final byte MSG_REQUEST_MIMIC = 10;
     public static final byte MSG_REQUEST_CLICK = 11;
     public static final byte MSG_REQUEST_HOLD = 12;
@@ -42,12 +43,24 @@ public class WifiPinger {
     private String mHost;
     private int mPort;
     private Socket mSocket;
+    private File mLayoutDir;
 
     public WifiPinger(Context context, String host, int port) {
         mContext = context;
         mSocket = new Socket();
         mHost = host;
         mPort = port;
+        mLayoutDir = new File(LAYOUT_DIR_PATH);
+        clearDirectory();
+    }
+
+    private void clearDirectory() {
+        for (File f : mLayoutDir.listFiles()) {
+            if (f != null && f.exists()) {
+                f.delete();
+            }
+        }
+        Log.d(TAG, "Directory cleared... " + mLayoutDir.listFiles().length);
     }
 
     private void bindSocket() throws IOException {
@@ -65,51 +78,6 @@ public class WifiPinger {
                 mSocket.close();
             }
             mSocket = null;
-        }
-    }
-
-    public void pingToRequestMimic() {
-        Log.d(TAG, "*** ping to mimic host!");
-        pingMessage(MSG_REQUEST_MIMIC, null);
-    }
-
-    public void handleResponseToMimic(String nextPagePath) {
-        Log.d(TAG, "*** handling response to mimic! " + nextPagePath + " *********");
-        Intent intent = new Intent(TransformActivity.ACTION_UPDATE_LAYOUT);
-        intent.putExtra(TransformActivity.EXTRA_LAYOUT_PATH, nextPagePath);
-        mContext.sendBroadcast(intent);
-    }
-
-    public void pingToRequestClick(int x, int y) {
-        Log.d(TAG, "*** ping to interact! (" + x + ", " + y + ") *********");
-        try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-             DataOutputStream outStream = new DataOutputStream(baos)) {
-            outStream.writeInt(x);
-            outStream.writeInt(y);
-            outStream.flush();
-            byte[] data = baos.toByteArray();
-            pingMessage(MSG_REQUEST_CLICK, data);
-        } catch (IOException e) {
-            Log.e(TAG, "Error creating output streams", e);
-        }
-    }
-
-    public void handleResponseToClick(int action) {
-        if (action == 0) {
-            Log.d(TAG, "No action... do nothing");
-            return;
-        } else if (action > 0) {
-//            try {
-//                Thread.sleep(3000);
-//                Log.d(TAG, "Action occured! Request mimic!");
-//                pingToRequestMimic();
-//            } catch (InterruptedException e) {
-//
-//            }
-            Log.d(TAG, "Go to page " + action);
-            Intent intent = new Intent(TransformActivity.ACTION_UPDATE_LAYOUT);
-            intent.putExtra(TransformActivity.EXTRA_LAYOUT_PATH, convertPageNumberToPath(action));
-            mContext.sendBroadcast(intent);
         }
     }
 
@@ -136,13 +104,26 @@ public class WifiPinger {
         return mSocket.isConnected();
     }
 
-    /**
-     * Used for small messages
-     * @param message
-     * @param data
-     * @return byte[] for response
-     */
-    private void pingMessage(byte message, byte[] data) {
+    public void pingToRequestMimic() {
+        Log.d(TAG, "*** ping to mimic host!");
+        pingMessage(MSG_REQUEST_MIMIC, null);
+    }
+
+    public void pingToRequestClick(int x, int y) {
+        Log.d(TAG, "*** ping to interact! (" + x + ", " + y + ") *********");
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+             DataOutputStream outStream = new DataOutputStream(baos)) {
+            outStream.writeInt(x);
+            outStream.writeInt(y);
+            outStream.flush();
+            byte[] data = baos.toByteArray();
+            pingMessage(MSG_REQUEST_CLICK, data);
+        } catch (IOException e) {
+            Log.e(TAG, "Error creating output streams", e);
+        }
+    }
+
+    private void pingMessage(int message, byte[] data) {
         if (!connectSocket()) {
             return;
         }
@@ -156,89 +137,94 @@ public class WifiPinger {
                 os.write(data, 0, data.length);
             }
             os.flush();
+            awaitResponse();
+        } catch (IOException e) {
+            Log.e(TAG, "Problem with sending stream ", e);
+        } finally {
+            try {
+                unbindSocket();
+            } catch (IOException e) {
+                Log.e(TAG, "Problem unbinding socket", e);
+            }
+        }
+    }
 
-            // Await for response from server
+    private void awaitResponse() {
+        try {
             Log.d(TAG, "Awaiting response...");
             InputStream is = mSocket.getInputStream();
             int respMsg = is.read();
+            Log.d(TAG, "Retrieved response for message: " + respMsg);
             if (MSG_REQUEST_MIMIC == respMsg) {
-                int nextPage = is.read();
-                handleResponseToMimic(convertPageNumberToPath(nextPage));
+                DataInputStream dis = new DataInputStream(is);
+                long expectedFileSize = dis.readLong();
+                Log.d(TAG, "Expected file size: " + expectedFileSize);
+                File f = extractFileStream(expectedFileSize, mSocket.getInputStream());
+                if (f != null) {
+                    handleResponseToMimic(f);
+                }
             } else if (MSG_REQUEST_CLICK == respMsg) {
-                int action = is.read();
-                handleResponseToClick(action);
+                int changed = is.read();
+                handleResponseToClick(changed == 1 ? true : false);
             } else {
                 Log.d(TAG, "Unknown response " + respMsg);
             }
         } catch (IOException e) {
-            Log.e(TAG, "Problem with InputStreams", e);
-        } finally {
-            try {
-                unbindSocket();
-            } catch (IOException e) {
-                Log.e(TAG, "Problem unbinding socket", e);
-            }
+            Log.e(TAG, "Problem with response stream ", e);
         }
     }
 
-    private String convertPageNumberToPath(int pageNumber) {
-        if (pageNumber == 1) {
-            return TransformActivity.HOST_PAGE_PATH_1;
-        } else if (pageNumber == 2) {
-            return TransformActivity.HOST_PAGE_PATH_2;
-        } else if (pageNumber == 3) {
-            return TransformActivity.HOST_PAGE_PATH_3;
-        }
-        Log.d(TAG, "Unknown response for MIMIC " + pageNumber);
-        return null;
+    private void handleResponseToMimic(File f) {
+        Log.d(TAG, "Handling response from MIMIC " + f.getAbsolutePath());
+        Intent intent = new Intent(TransformActivity.ACTION_UPDATE_LAYOUT);
+        intent.putExtra(TransformActivity.EXTRA_LAYOUT_PATH, f.getAbsolutePath());
+        mContext.sendBroadcast(intent);
     }
 
-//    private byte[] getBytesFromInputStream(InputStream is) throws IOException {
-//        Log.d(TAG, "get bytes from inputstream...");
-//        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-//            byte[] buffer = new byte[1024];
-//            int len = 0;
-//            Log.d(TAG, "Start reading..");
-//            while ((len = is.read(buffer)) != -1) {
-//                Log.d(TAG, "read len " + len);
-//                baos.write(buffer, 0, len);
-//            }
-//            baos.flush();
-//            byte[] res = baos.toByteArray();
-//            Log.d(TAG, "finished reading and writing... " + res.length);
-//            return res;
-//        }
-//    }
+    private void handleResponseToClick(boolean changed) {
+        Log.d(TAG, "Handling response from CLICK " + changed);
+        if (changed) {
+            Log.d(TAG, "Something changed! Request to MIMIC!");
+            mContext.sendBroadcast(new Intent(TransformActivity.ACTION_REQUEST_UPDATE));
+        } else {
+            Log.d(TAG, "Nothing changed... do nothing");
+        }
+    }
 
-    public void extractStream(Uri uri) {
-        ContentResolver cr = mContext.getContentResolver();
-        int len = 0;
-        byte[] buffer = new byte[1024];
+    public File extractFileStream(long expectedFileSize, InputStream is) {
+        // Create new file
+        File f = null;
         try {
-            bindSocket();
-
-            // Output stream from server
-            OutputStream outputStream = mSocket.getOutputStream();
-            // Input stream to read content
-            InputStream inputStream = cr.openInputStream(uri);
-
-            // Read content
-            while ((len = inputStream.read(buffer)) != -1) {
-                outputStream.write(buffer, 0, len);
-            }
-
-            // Close streams
-            outputStream.close();
-            inputStream.close();
-
+            f = File.createTempFile(UUID.randomUUID().toString(), ".xml", new File(LAYOUT_DIR_PATH));
         } catch (IOException e) {
-            Log.e(TAG, "Problem binding socket", e);
-        } finally {
-            try {
-                unbindSocket();
-            } catch (IOException e) {
-                Log.e(TAG, "Problem unbinding socket", e);
-            }
+            Log.e(TAG, "Error creating new temp file");
         }
+        if (f == null || !f.exists()) {
+            Log.e(TAG, "problem extracting file!");
+            return null;
+        }
+        Log.d(TAG, "Created file on disk " + f.getAbsolutePath());
+
+        // Load socket's input stream into newly created file
+        Log.d(TAG, "Loading stream into new file...");
+        try (FileOutputStream os = new FileOutputStream(f)) {
+            byte[] buf = new byte[8192];
+            long totalSizeRead = 0;
+            while (totalSizeRead < expectedFileSize) {
+                int len = is.read(buf);
+                if (len != -1) {
+                    os.write(buf, 0, len);
+                }
+                totalSizeRead += len;
+                Log.d(TAG, "copying stream..."
+                        + " totalSize: " + totalSizeRead
+                        + " expected: " + expectedFileSize);
+            }
+            return f;
+        } catch (IOException e) {
+            Log.e(TAG, "Error extracting file " + f.getAbsolutePath());
+        }
+
+        return null;
     }
 }

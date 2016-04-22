@@ -30,20 +30,17 @@ import java.io.IOException;
 public class TransformActivity extends Activity {
     private static final String TAG = "Ditto.TransformActivity";
 
-//    public static final String HOST_PAGE_PATH_1 = "/sdcard/DittoLayouts/host_page1.xml";
-    public static final String HOST_PAGE_PATH_1 = "/storage/emulated/0/DittoLayouts/host_page1.xml";
-    public static final String HOST_PAGE_PATH_2 = "/storage/emulated/0/DittoLayouts/host_page2.xml";
-    public static final String HOST_PAGE_PATH_3 = "/storage/emulated/0/DittoLayouts/host_page3.xml";
-    public static final String IMAGE_PATH_1_1 = "/storage/emulated/0/DittoLayouts/ditto_look.png";
-    public static final String IMAGE_PATH_3_1 = "/storage/emulated/0/DittoLayouts/ditto_gen1.png";
-    public static final String IMAGE_PATH_3_2 = "/storage/emulated/0/DittoLayouts/ditto_gen2.png";
-    public static final String IMAGE_PATH_3_3 = "/storage/emulated/0/DittoLayouts/ditto_gen3.png";
-    public static final String IMAGE_PATH_3_4 = "/storage/emulated/0/DittoLayouts/ditto_gen5.png";
-    public static final String IMAGE_PATH_3_5 = "/storage/emulated/0/DittoLayouts/ditto_gen5shiny.png";
+    public static final String IMAGE_PATH_1_1 = "/storage/emulated/0/DittoLayouts/pics/ditto_look.png";
+    public static final String IMAGE_PATH_3_1 = "/storage/emulated/0/DittoLayouts/pics/ditto_gen1.png";
+    public static final String IMAGE_PATH_3_2 = "/storage/emulated/0/DittoLayouts/pics/ditto_gen2.png";
+    public static final String IMAGE_PATH_3_3 = "/storage/emulated/0/DittoLayouts/pics/ditto_gen3.png";
+    public static final String IMAGE_PATH_3_4 = "/storage/emulated/0/DittoLayouts/pics/ditto_gen5.png";
+    public static final String IMAGE_PATH_3_5 = "/storage/emulated/0/DittoLayouts/pics/ditto_gen5shiny.png";
 
     static final int MIN_DISTANCE = 100;
 
     // Intents
+    public static final String ACTION_REQUEST_UPDATE = "com.nextbit.aaronhsu.projectdittoimposter.REQUEST_UPDATE";
     public static final String ACTION_UPDATE_LAYOUT = "com.nextbit.aaronhsu.projectdittoimposter.UPDATE_LAYOUT";
     public static final String EXTRA_LAYOUT_PATH = "extra_layout_path";
     private InnerReceiver mInnerReceiver = new InnerReceiver();
@@ -78,7 +75,7 @@ public class TransformActivity extends Activity {
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-            new PingToMimicTask(mReceiver).execute();
+                new PingToMimicTask(mReceiver).execute();
             }
         });
 
@@ -113,6 +110,7 @@ public class TransformActivity extends Activity {
         }
         IntentFilter filter = new IntentFilter();
         filter.addAction(ACTION_UPDATE_LAYOUT);
+        filter.addAction(ACTION_REQUEST_UPDATE);
         registerReceiver(mInnerReceiver, filter);
     }
 
@@ -338,6 +336,8 @@ public class TransformActivity extends Activity {
                 String nextPagePath = intent.getStringExtra(EXTRA_LAYOUT_PATH);
                 Log.d(TAG, "updating layout to page " + nextPagePath);
                 updateLayoutWithXml(nextPagePath);
+            } else if (ACTION_REQUEST_UPDATE.equals(action)) {
+                new PingToMimicTask(mReceiver).execute();
             }
         }
     }
