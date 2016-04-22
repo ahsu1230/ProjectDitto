@@ -36,7 +36,7 @@ public class WifiPinger {
     public static final byte MSG_REQUEST_MIMIC = 10;
     public static final byte MSG_REQUEST_CLICK = 11;
     public static final byte MSG_REQUEST_HOLD = 12;
-    public static final byte MSG_REQUEST_SCROLL = 13;
+    public static final byte MSG_REQUEST_SWIPE = 13;
     public static final byte MSG_REQUEST_ROTATE = 14;
 
     private final Context mContext;

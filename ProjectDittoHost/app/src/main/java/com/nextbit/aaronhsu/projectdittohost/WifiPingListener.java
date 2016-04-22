@@ -38,7 +38,7 @@ public class WifiPingListener {
     private static final byte MSG_REQUEST_MIMIC = 10;
     private static final byte MSG_REQUEST_CLICK = 11;
     private static final byte MSG_REQUEST_HOLD = 12;
-    private static final byte MSG_REQUEST_SCROLL = 13;
+    private static final byte MSG_REQUEST_SWIPE = 13;
     private static final byte MSG_REQUEST_ROTATE = 14;
 
     private int mCurrentPage;
@@ -108,6 +108,9 @@ public class WifiPingListener {
                     break;
                 case MSG_REQUEST_CLICK:
                     onClick(client);
+                    break;
+                case MSG_REQUEST_SWIPE:
+                    onSwipe(client);
                     break;
                 case MSG_REQUEST_ROTATE:
                     onRotate(client);
@@ -193,6 +196,10 @@ public class WifiPingListener {
             Log.e(TAG, "Problem writing to socket OutputStream", e);
             return;
         }
+    }
+
+    private void onSwipe(Socket clientSocket) {
+        Log.d(TAG, "onSwipe()");
     }
 
     private void onRotate(Socket clientSocket) {

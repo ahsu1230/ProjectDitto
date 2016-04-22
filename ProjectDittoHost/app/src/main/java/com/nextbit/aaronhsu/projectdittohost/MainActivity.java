@@ -177,14 +177,11 @@ public class MainActivity extends Activity {
                 int orientation = intent.getIntExtra(EXTRA_ORIENTATION, 0);
                 Log.d(TAG, "Applying rotate! " + orientation);
                 if (ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE == orientation) {
-                    Toast.makeText(getApplicationContext(), "Rotate to landscape", Toast.LENGTH_LONG).show();
                     setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
                 } else if (ActivityInfo.SCREEN_ORIENTATION_PORTRAIT == orientation) {
-                    Toast.makeText(getApplicationContext(), "Rotate to Portrait", Toast.LENGTH_LONG).show();
                     setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
                 } else if (ActivityInfo.SCREEN_ORIENTATION_USER == orientation) {
-                    Toast.makeText(getApplicationContext(), "Rotate to Orientation_User", Toast.LENGTH_LONG).show();
-                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_USER);
+                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
                 }
             }
         }
