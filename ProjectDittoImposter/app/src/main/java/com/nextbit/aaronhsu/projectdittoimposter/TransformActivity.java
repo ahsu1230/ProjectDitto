@@ -13,11 +13,9 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.Display;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.Toast;
 
@@ -204,16 +202,16 @@ public class TransformActivity extends Activity {
             setContentView(newRoot);
 
             Log.d(TAG, "Setup click listener on new root " + newRoot);
-            setupClickListenerOnRoot(newRoot);
+            setupTouchListenerOnRoot(newRoot);
 //            Log.d(TAG, "Setup click listener on getRootView() " + getRootView());
-//            setupClickListenerOnRoot(getRootView());
+//            setupTouchListenerOnRoot(getRootView());
 
         } catch (IOException e) {
             Log.e(TAG, "Error parsing xml file " + xmlFilePath, e);
         }
     }
 
-    private void setupClickListenerOnRoot(View view) {
+    private void setupTouchListenerOnRoot(View view) {
         view.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
@@ -253,21 +251,33 @@ public class TransformActivity extends Activity {
                     lastDownY = 0;
                 } else if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > MIN_DISTANCE) {
                     if (deltaX > 0) {
-                        Log.d(TAG, "DETECTED SCROLL RIGHT!");
+                        Log.d(TAG, "DETECTED SWIPE RIGHT!");
+                        new PingToSwipeTask(mReceiver).execute(
+                                (int) lastDownX, (int) lastDownY,
+                                (int) upX, (int) upY);
                         lastDownX = 0;
                         lastDownY = 0;
                     } else {
-                        Log.d(TAG, "DETECTED SCROLL LEFT!");
+                        Log.d(TAG, "DETECTED SWIPE LEFT!");
+                        new PingToSwipeTask(mReceiver).execute(
+                                (int) lastDownX, (int) lastDownY,
+                                (int) upX, (int) upY);
                         lastDownX = 0;
                         lastDownY = 0;
                     }
                 } else if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > MIN_DISTANCE) {
                     if (deltaY > 0) {
-                        Log.d(TAG, "DETECTED SCROLL UP!");
+                        Log.d(TAG, "DETECTED SWIPE UP!");
+                        new PingToSwipeTask(mReceiver).execute(
+                                (int) lastDownX, (int) lastDownY,
+                                (int) upX, (int) upY);
                         lastDownX = 0;
                         lastDownY = 0;
                     } else {
-                        Log.d(TAG, "DETECTED SCROLL DOWN!");
+                        Log.d(TAG, "DETECTED SWIPE DOWN!");
+                        new PingToSwipeTask(mReceiver).execute(
+                                (int) lastDownX, (int) lastDownY,
+                                (int) upX, (int) upY);
                         lastDownX = 0;
                         lastDownY = 0;
                     }
@@ -344,6 +354,30 @@ public class TransformActivity extends Activity {
         @Override
         protected void onPostExecute(Void o) {
             Log.d(TAG, "PingToClickTask... postExecute()");
+        }
+    }
+
+    private class PingToSwipeTask extends AsyncTask<Integer, Void, Void> {
+        final WifiDirectReceiver mReceiver;
+
+        public PingToSwipeTask(WifiDirectReceiver receiver) {
+            mReceiver = receiver;
+        }
+
+        @Override
+        protected Void doInBackground(Integer[] params) {
+            Log.d(TAG, "PingToSwipeTask... doInBackground()");
+            int x1 = params[0].intValue();
+            int y1 = params[1].intValue();
+            int x2 = params[2].intValue();
+            int y2 = params[3].intValue();
+            mReceiver.getWifiPinger().pingToRequestSwipe(x1, y1, x2, y2);
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void o) {
+            Log.d(TAG, "PingToSwipeTask... postExecute()");
         }
     }
 

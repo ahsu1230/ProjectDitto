@@ -2,7 +2,6 @@ package com.nextbit.aaronhsu.projectdittohost;
 
 import android.Manifest;
 import android.app.Activity;
-import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -29,8 +28,12 @@ public class MainActivity extends Activity {
     public static final String EXTRA_PAGE = "page";
 
     public static final String ACTION_APPLY_CLICK = "com.nextbit.aaronhsu.ProjectDittoHost.APPLY_CLICK";
-    public static final String EXTRA_CLICK_X = "click_x";
-    public static final String EXTRA_CLICK_Y = "click_y";
+    public static final String EXTRA_CLICK_X1 = "click_x1";
+    public static final String EXTRA_CLICK_Y1 = "click_y1";
+
+    public static final String ACTION_APPLY_SWIPE = "com.nextbit.aaronhsu.ProjectDittoHost.APPLY_SWIPE";
+    public static final String EXTRA_CLICK_X2 = "click_x2";
+    public static final String EXTRA_CLICK_Y2 = "click_y2";
 
     public static final String ACTION_APPLY_ROTATE = "com.nextbit.aaronhsu.ProjectDittoHost.APPLY_ROTATE";
     public static final String EXTRA_ORIENTATION = "orientation";
@@ -55,6 +58,7 @@ public class MainActivity extends Activity {
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(ACTION_APPLY_CLICK);
+        filter.addAction(ACTION_APPLY_SWIPE);
         filter.addAction(ACTION_APPLY_ROTATE);
         registerReceiver(mReceiver, filter);
 
@@ -155,8 +159,8 @@ public class MainActivity extends Activity {
             String action = intent.getAction();
             Log.d(TAG, "Internal BroadcastReceiver received: " + action);
             if (ACTION_APPLY_CLICK.equals(action)) {
-                int x = intent.getIntExtra(EXTRA_CLICK_X, 0);
-                int y = intent.getIntExtra(EXTRA_CLICK_Y, 0);
+                int x = intent.getIntExtra(EXTRA_CLICK_X1, 0);
+                int y = intent.getIntExtra(EXTRA_CLICK_Y1, 0);
                 Log.d(TAG, "Applying click! (" + x + ", " + y + ")");
 
                 // Apply DOWN
@@ -173,6 +177,27 @@ public class MainActivity extends Activity {
                 eventTime += 500;
                 ((ViewGroup) getRootView()).dispatchTouchEvent(MotionEvent.obtain(
                         downTime, eventTime, eventAction, x, y, metaState));
+            } else if (ACTION_APPLY_SWIPE.equals(action)) {
+                int downX = intent.getIntExtra(EXTRA_CLICK_X1, 0);
+                int downY = intent.getIntExtra(EXTRA_CLICK_Y1, 0);
+                int upX = intent.getIntExtra(EXTRA_CLICK_X2, 0);
+                int upY = intent.getIntExtra(EXTRA_CLICK_Y2, 0);
+                Log.d(TAG, "Applying swipe! (" + downX + ", " + downY + ") to (" + upX + ", " + upY + ")");
+
+                // Apply DOWN
+                int eventAction = MotionEvent.ACTION_DOWN;
+                long downTime = SystemClock.uptimeMillis();
+                long eventTime = downTime + 100;
+                int metaState = 0;
+                ((ViewGroup) getRootView()).dispatchTouchEvent(MotionEvent.obtain(
+                        downTime, eventTime, eventAction, downX, downY, metaState));
+
+                // Apply UP
+                eventAction = MotionEvent.ACTION_UP;
+                downTime += 500;
+                eventTime += 500;
+                ((ViewGroup) getRootView()).dispatchTouchEvent(MotionEvent.obtain(
+                        downTime, eventTime, eventAction, upX, upY, metaState));
             } else if (ACTION_APPLY_ROTATE.equals(action)) {
                 int orientation = intent.getIntExtra(EXTRA_ORIENTATION, 0);
                 Log.d(TAG, "Applying rotate! " + orientation);

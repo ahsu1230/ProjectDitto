@@ -2,7 +2,6 @@ package com.nextbit.aaronhsu.projectdittohost;
 
 import android.content.Context;
 import android.content.Intent;
-import android.net.Uri;
 import android.util.Log;
 
 import java.io.DataInputStream;
@@ -88,7 +87,6 @@ public class WifiPingListener {
         }
     }
 
-
     public void listenToRespond() {
         Socket client = getClientSocket();
         if (client == null) {
@@ -173,8 +171,8 @@ public class WifiPingListener {
         // Apply Click action!
         Log.d(TAG, "Sending intent for click! on page " + mCurrentPage);
         Intent intent = new Intent(MainActivity.ACTION_APPLY_CLICK);
-        intent.putExtra(MainActivity.EXTRA_CLICK_X, x);
-        intent.putExtra(MainActivity.EXTRA_CLICK_Y, y);
+        intent.putExtra(MainActivity.EXTRA_CLICK_X1, x);
+        intent.putExtra(MainActivity.EXTRA_CLICK_Y1, y);
         mContext.sendBroadcast(intent);
 
         int pageBeforeSleep = mCurrentPage;
@@ -200,6 +198,28 @@ public class WifiPingListener {
 
     private void onSwipe(Socket clientSocket) {
         Log.d(TAG, "onSwipe()");
+        // Read first coordinates (x1, y1) and second coordinates (x2, y2)
+        int x1, x2, y1, y2;
+        try {
+            DataInputStream dis = new DataInputStream(clientSocket.getInputStream());
+            x1 = dis.readInt();
+            y1 = dis.readInt();
+            x2 = dis.readInt();
+            y2 = dis.readInt();
+            Log.d(TAG, "Read swipe coordinates from (" + x1 + ", " + y1 + ") to (" + x2 + ", " + y2 + ")");
+        } catch (IOException e) {
+            Log.e(TAG, "Problem reading socket InputStream ", e);
+            return;
+        }
+
+        // Apply Swipe action!
+        Log.d(TAG, "Sending intent for swipe! on page " + mCurrentPage);
+        Intent intent = new Intent(MainActivity.ACTION_APPLY_SWIPE);
+        intent.putExtra(MainActivity.EXTRA_CLICK_X1, x1);
+        intent.putExtra(MainActivity.EXTRA_CLICK_Y1, y1);
+        intent.putExtra(MainActivity.EXTRA_CLICK_X2, x2);
+        intent.putExtra(MainActivity.EXTRA_CLICK_Y2, y2);
+        mContext.sendBroadcast(intent);
     }
 
     private void onRotate(Socket clientSocket) {

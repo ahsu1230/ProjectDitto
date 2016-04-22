@@ -110,7 +110,7 @@ public class WifiPinger {
     }
 
     public void pingToRequestClick(int x, int y) {
-        Log.d(TAG, "*** ping to interact! (" + x + ", " + y + ") *********");
+        Log.d(TAG, "*** ping to interact! click (" + x + ", " + y + ") *********");
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
              DataOutputStream outStream = new DataOutputStream(baos)) {
             outStream.writeInt(x);
@@ -118,6 +118,22 @@ public class WifiPinger {
             outStream.flush();
             byte[] data = baos.toByteArray();
             pingMessage(MSG_REQUEST_CLICK, data);
+        } catch (IOException e) {
+            Log.e(TAG, "Error creating output streams", e);
+        }
+    }
+
+    public void pingToRequestSwipe(int downX, int downY, int upX, int upY) {
+        Log.d(TAG, "*** ping to interact! click (" + downX + ", " + downY + ") to (" + upX + ", " + upY +") *********");
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+             DataOutputStream outStream = new DataOutputStream(baos)) {
+            outStream.writeInt(downX);
+            outStream.writeInt(downY);
+            outStream.writeInt(upX);
+            outStream.writeInt(upY);
+            outStream.flush();
+            byte[] data = baos.toByteArray();
+            pingMessage(MSG_REQUEST_SWIPE, data);
         } catch (IOException e) {
             Log.e(TAG, "Error creating output streams", e);
         }
@@ -179,6 +195,8 @@ public class WifiPinger {
             } else if (MSG_REQUEST_CLICK == respMsg) {
                 int changed = is.read();
                 handleResponseToClick(changed == 1 ? true : false);
+            } else if (MSG_REQUEST_SWIPE == respMsg) {
+                handleResponseToSwipe();
             } else if (MSG_REQUEST_ROTATE == respMsg) {
                 handleResponseToRotate();
             } else {
@@ -204,6 +222,10 @@ public class WifiPinger {
         } else {
             Log.d(TAG, "Nothing changed... do nothing");
         }
+    }
+
+    private void handleResponseToSwipe() {
+        Log.d(TAG, "Handling response from SWIPE");
     }
 
     private void handleResponseToRotate() {
